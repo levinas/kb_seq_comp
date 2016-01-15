@@ -12,6 +12,15 @@ MAINTAINER KBase Developer
 RUN apt-get install libffi-dev libssl-dev
 RUN pip install --upgrade requests[security]
 
+# Install Mummer
+RUN \
+    wget http://downloads.sourceforge.net/project/mummer/mummer/3.23/MUMmer3.23.tar.gz && \
+    tar xf MUMmer3.23.tar.gz && \
+    mv MUMmer3.23 /kb/deployment/mummer && \
+    cd /kb/deployment/mummer && make all && \
+    echo 'export PATH=$PATH:/kb/deployment/mummer' >> /kb/deployment/user-env.sh
+
+# Copy local wrapper files, and build
 
 COPY ./ /kb/module
 RUN mkdir -p /kb/module/work
