@@ -1,0 +1,59 @@
+#
+# define display information
+#
+name: Sequence Comparison with DNAdiff
+tooltip: |
+        Perform DNA sequence comparison on multiple genomes with MUMmer's DNAdiff
+screenshots: []
+
+icon: icon.png
+
+#
+# define a set of similar methods that might be useful to the user
+#
+suggestions:
+    apps:
+        related:
+            []
+        next:
+            []
+    methods:
+        related:
+            []
+        next:
+            []
+
+#
+# Configure the display and description of parameters
+#
+parameters :
+    input_genomeset :
+        ui-name : |
+            Genome Set
+        short-hint : |
+            A set of references to genomes stored in KBase
+        long-hint  : |
+            A set of references to genomes stored in KBase
+
+    input_genomes :
+        ui-name : |
+            Genome or ContigSet
+        short-hint : |
+            A list of references to genomes or contigsets stored in KBase
+        long-hint  : |
+            A list of references to genomes or contigsets stored in KBase
+
+    output_report_name:
+        ui-name : Output Report
+        short-hint : Enter a name for the output DNAdiff report object
+
+
+description : |
+	<p>This is a KBase wrapper for MUMmer's DNAdiff.</p>
+
+publications :
+    -
+        pmid: 18428693
+        display-text : |
+            'Delcher, A. L., Salzberg, S. L., & Phillippy, A. M. (2003). Using MUMmer to identify similar regions in large sequence sets. Current Protocols in Bioinformatics, 10-3'
+        link: http://www.ncbi.nlm.nih.gov/pubmed/18428693

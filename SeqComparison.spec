@@ -5,36 +5,31 @@ This sample module contains one small method - filter_contigs.
 
 module SeqComparison {
     /*
-        A string representing a ContigSet id.
-    */
-    typedef string contigset_id;
+        Run DNAdiff.
 
-    /*
-        A string representing a workspace name.
+        workspace_name - the name of the workspace for input/output
+        input_genomeset_ref - optional input reference to genome set
+        input_genome_refs - optional input list of references to genome objects
+        output_report_name - the name of the output report
+
+        n_break - break matches at n_break or more consecutive non-ACGTs
+
+        @optional input_genomeset
+        @optional input_genome_names
     */
-    typedef string workspace_name;
+    typedef structure {
+        string workspace_name;
+        string input_genomeset;
+        list<string> input_genome_names;
+        string output_report_name;
+    } DNAdiffParams;
 
     typedef structure {
-        workspace_name workspace;
-        contigset_id contigset_id;
-        int min_length;
-    } FilterContigsParams;
+        string report_name;
+        string report_ref;
+    } DNAdiffOutput;
 
-    /* 
-        The workspace ID for a ContigSet data object.
-        @id ws KBaseGenomes.ContigSet
-    */
-    typedef string ws_contigset_id;
+    funcdef run_mugsy(DNAdiffParams params) returns (DNAdiffOutput output)
+        authentication required;
 
-    typedef structure {
-        ws_contigset_id new_contigset_ref;
-        int n_initial_contigs;
-        int n_contigs_removed;
-        int n_contigs_remaining;
-    } FilterContigsResults;
-	
-    /*
-        Filter contigs in a ContigSet by DNA length
-    */
-    funcdef filter_contigs(FilterContigsParams params) returns (FilterContigsResults) authentication required;
 };
