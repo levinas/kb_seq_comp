@@ -10,6 +10,13 @@ from pprint import pprint
 from biokbase.workspace.client import Workspace as workspaceService
 from SeqComparison.SeqComparisonImpl import SeqComparison
 
+from biokbase.workspace.client import Workspace as workspaceService
+from WholeGenomeAlignment.WholeGenomeAlignmentImpl import WholeGenomeAlignment
+
+logging.basicConfig(format="[%(asctime)s %(levelname)s %(name)s] %(message)s",
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 class SeqComparisonTest(unittest.TestCase):
 
@@ -53,40 +60,20 @@ class SeqComparisonTest(unittest.TestCase):
     def getContext(self):
         return self.__class__.ctx
 
-    def test_filter_contigs_ok(self):
-        obj_name = "contigset.1"
-        contig1 = {'id': '1', 'length': 10, 'md5': 'md5', 'sequence': 'agcttttcat'}
-        contig2 = {'id': '2', 'length': 5, 'md5': 'md5', 'sequence': 'agctt'}
-        contig3 = {'id': '3', 'length': 12, 'md5': 'md5', 'sequence': 'agcttttcatgg'}
-        obj1 = {'contigs': [contig1, contig2, contig3], 'id': 'id', 'md5': 'md5', 'name': 'name', 
-                'source': 'source', 'source_id': 'source_id', 'type': 'type'}
-        self.getWsClient().save_objects({'workspace': self.getWsName(), 'objects':
-            [{'type': 'KBaseGenomes.ContigSet', 'name': obj_name, 'data': obj1}]})
-        ret = self.getImpl().filter_contigs(self.getContext(), {'workspace': self.getWsName(), 
-            'contigset_id': obj_name, 'min_length': '10'})
-        obj2 = self.getWsClient().get_objects([{'ref': self.getWsName()+'/'+obj_name}])[0]['data']
-        self.assertEqual(len(obj2['contigs']), 2)
-        self.assertTrue(len(obj2['contigs'][0]['sequence']) >= 10)
-        self.assertTrue(len(obj2['contigs'][1]['sequence']) >= 10)
-        self.assertEqual(ret[0]['n_initial_contigs'], 3)
-        self.assertEqual(ret[0]['n_contigs_removed'], 1)
-        self.assertEqual(ret[0]['n_contigs_remaining'], 2)
 
-    def test_filter_contigs_err1(self):
-        with self.assertRaises(ValueError) as context:
-            self.getImpl().filter_contigs(self.getContext(), {'workspace': self.getWsName(), 
-                'contigset_id': 'fake', 'min_length': 10})
-        self.assertTrue('Error loading original ContigSet object' in str(context.exception))
+    def getGenomeSetInfo(self):
+        testFile = 'data/params.json'
+        if os.path.exists(testFile):
+            logger.info("Reading input from {}".format(testFile))
+            with open(testFile) as testInfoFile:
+                return json.load(testInfoFile)
 
-    def test_filter_contigs_err2(self):
-        with self.assertRaises(ValueError) as context:
-            self.getImpl().filter_contigs(self.getContext(), {'workspace': self.getWsName(), 
-                'contigset_id': 'fake', 'min_length': '-10'})
-        self.assertTrue('min_length parameter shouldn\'t be negative' in str(context.exception))
+    def test_run_mugsy(self):
+        params = self.getGenomeSetInfo()
+        if not params.get('output_report_name'):
+            params['output_report_name'] = 'output.report'
 
-    def test_filter_contigs_err3(self):
-        with self.assertRaises(ValueError) as context:
-            self.getImpl().filter_contigs(self.getContext(), {'workspace': self.getWsName(), 
-                'contigset_id': 'fake', 'min_length': 'ten'})
-        self.assertTrue('Cannot parse integer from min_length parameter' in str(context.exception))
-        
+        logger.info(json.dumps(params))
+
+        result = self.getImpl().run_dnadiff(self.getContext(),params)
+        logger.info(result)

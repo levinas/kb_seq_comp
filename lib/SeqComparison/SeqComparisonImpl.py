@@ -1,7 +1,27 @@
 #BEGIN_HEADER
+import os
 import sys
 import traceback
+import json
+import logging
+import subprocess
+import tempfile
+import uuid
+import hashlib
+
+from datetime import datetime
+
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+
 from biokbase.workspace.client import Workspace as workspaceService
+
+
+logging.basicConfig(format="[%(asctime)s %(levelname)s %(name)s] %(message)s",
+                    level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 #END_HEADER
 
 
@@ -23,6 +43,27 @@ This sample module contains one small method - filter_contigs.
     #########################################
     #BEGIN_CLASS_HEADER
     workspaceURL = None
+
+    # target is a list for collecting log messages
+    def log(self, target, message):
+        # we should do something better here...
+        if target is not None:
+            target.append(message)
+        logger.info(message)
+
+    def contigset_to_fasta(self, contigset, fasta_file):
+        records = []
+        for contig in contigset['contigs']:
+            record = SeqRecord(Seq(contig['sequence']), id=contig['id'], description='')
+            records.append(record)
+        SeqIO.write(records, fasta_file, "fasta")
+
+    def create_temp_json(self, attrs):
+        f = tempfile.NamedTemporaryFile(delete=False)
+        outjson = f.name
+        f.write(json.dumps(attrs))
+        f.close()
+        return outjson
     #END_CLASS_HEADER
 
     # config contains contents of config file in a hash or None if it couldn't
@@ -33,96 +74,213 @@ This sample module contains one small method - filter_contigs.
         #END_CONSTRUCTOR
         pass
 
-    def filter_contigs(self, ctx, params):
+    def run_dnadiff(self, ctx, params):
         # ctx is the context object
-        # return variables are: returnVal
-        #BEGIN filter_contigs
-        
-        print('Starting filter contigs method.')
-        
-        if 'workspace' not in params:
-            raise ValueError('Parameter workspace is not set in input arguments')
-        workspace_name = params['workspace']
-        if 'contigset_id' not in params:
-            raise ValueError('Parameter contigset_id is not set in input arguments')
-        contigset_id = params['contigset_id']
-        if 'min_length' not in params:
-            raise ValueError('Parameter min_length is not set in input arguments')
-        min_length_orig = params['min_length']
-        min_length = None
-        try:
-            min_length = int(min_length_orig)
-        except ValueError:
-            raise ValueError('Cannot parse integer from min_length parameter (' + str(min_length_orig) + ')')
-        if min_length < 0:
-            raise ValueError('min_length parameter shouldn\'t be negative (' + str(min_length) + ')')
-        
-        token = ctx['token']
-        wsClient = workspaceService(self.workspaceURL, token=token) 
-        try: 
-            contigSet = wsClient.get_objects([{'ref': workspace_name+'/'+contigset_id}])[0]['data']
-        except:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            orig_error = ''.join('    ' + line for line in lines)
-            raise ValueError('Error loading original ContigSet object from workspace:\n' + orig_error)
-        provenance = ctx['provenance']
-        
-        print('Got ContigSet data.')
-        
-        # save the contigs to a new list
-        good_contigs = []
-        n_total = 0;
-        n_remaining = 0;
-        for contig in contigSet['contigs']:
-            n_total += 1
-            if len(contig['sequence']) >= min_length:
-                good_contigs.append(contig)
-                n_remaining += 1
+        # return variables are: output
+        #BEGIN run_dnadiff
 
-        # replace the contigs in the contigSet object in local memory
-        contigSet['contigs'] = good_contigs
-        
-        print('Filtered ContigSet to '+str(n_remaining)+' contigs out of '+str(n_total))
-        
-        # save the new object to the workspace
-        obj_info_list = None
-        try:
-	        obj_info_list = wsClient.save_objects({
-	                            'workspace':workspace_name,
-	                            'objects': [
-	                                {
-	                                    'type':'KBaseGenomes.ContigSet',
-	                                    'data':contigSet,
-	                                    'name':contigset_id,
-	                                    'provenance':provenance
-	                                }
-	                            ]
-	                        })
-        except:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            orig_error = ''.join('    ' + line for line in lines)
-            raise ValueError('Error saving filtered ContigSet object to workspace:\n' + orig_error)
-        
-        info = obj_info_list[0]
+        logger.info("params={}".format(json.dumps(params)))
 
-        print('saved:'+str(info))
+        token = ctx["token"]
+        ws = workspaceService(self.workspaceURL, token=token)
+        wsid = None
 
-        returnVal = {
-                'new_contigset_ref': str(info[6]) + '/'+str(info[0])+'/'+str(info[4]),
-                'n_initial_contigs':n_total,
-                'n_contigs_removed':n_total-n_remaining,
-                'n_contigs_remaining':n_remaining
+        genomeset = None
+        if "input_genomeset_ref" in params and params["input_genomeset_ref"] is not None:
+            logger.info("Loading GenomeSet object from workspace")
+            objects = ws.get_objects([{"ref": params["input_genomeset_ref"]}])
+            genomeset = objects[0]["data"]
+            wsid = objects[0]['info'][6]
+
+        genome_refs = []
+        if genomeset is not None:
+            for param_key in genomeset["elements"]:
+                genome_refs.append(genomeset["elements"][param_key]["ref"])
+            logger.info("Genome references from genome set: {}".format(genome_refs))
+
+        if "input_genome_refs" in params and params["input_genome_refs"] is not None:
+            for genome_ref in params["input_genome_refs"]:
+                if genome_ref is not None:
+                    genome_refs.append(genome_ref)
+
+        logger.info("Final list of genome references: {}".format(genome_refs))
+        if len(genome_refs) < 2:
+            raise ValueError("Number of genomes should be more than 1")
+        if len(genome_refs) > 10:
+            raise ValueError("Number of genomes exceeds 10, which is too many for dnadiff")
+
+        timestamp = int((datetime.utcnow() - datetime.utcfromtimestamp(0)).total_seconds()*1000)
+        output_dir = os.path.join(self.scratch, 'output.'+str(timestamp))
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        genome_names = []
+        fasta_files = []
+        for pos, ref in enumerate(genome_refs):
+            logger.info("Loading Genome object from workspace for ref: ".format(ref))
+
+            obj = ws.get_objects([{"ref": ref}])[0]
+            data = obj["data"]
+            info = obj["info"]
+            wsid = wsid or info[6]
+            type_name = info[2].split('.')[1].split('-')[0]
+            logger.info("type_name = {}".format(type_name))
+
+            # if KBaseGenomes.ContigSet
+            if type_name == 'Genome':
+                # logger.debug("genome = {}".format(json.dumps(data)))
+                genome_names.append(data.get("scientific_name", "") + " ({})".format(ref))
+                contigset_ref = data["contigset_ref"]
+                obj = ws.get_objects([{"ref": contigset_ref}])[0]
+                data = obj["data"]
+                info = obj["info"]
+                # logger.debug("data = {}".format(json.dumps(data)))
+            else:
+                genome_names.append(ref.split('/')[1] + " ({})".format(ref.split('/')[0]))
+
+
+            fasta_name = os.path.join(output_dir, "{}.fa".format(pos+1))
+            self.contigset_to_fasta(data, fasta_name)
+            fasta_files.append(fasta_name)
+
+            # data_ref = str(info[6]) + "/" + str(info[0]) + "/" + str(info[4])
+
+            # logger.info("info = {}".format(json.dumps(info)))
+            # logger.info("data = <<<<<<{}>>>>>>".format(json.dumps(data)))
+
+        logger.info("fasta_files = {}".format(fasta_files))
+
+        logger.info("Run DNAdiff:")
+
+        cmd = ['mugsy', '-p', 'out', '--directory', output_dir ]
+        cmd += fasta_files
+
+        logger.info("CMD: {}".format(' '.join(cmd)))
+        p = subprocess.Popen(cmd,
+                             cwd = self.scratch,
+                             stdout = subprocess.PIPE,
+                             stderr = subprocess.STDOUT, shell = False)
+
+        console = []
+        while True:
+            line = p.stdout.readline()
+            if not line: break
+            self.log(console, line.replace('\n', ''))
+
+        p.stdout.close()
+        p.wait()
+        logger.debug('return code: {}'.format(p.returncode))
+        if p.returncode != 0:
+            raise ValueError('Error running dnadiff, return code: {}\n\n{}'.format(p.returncode, '\n'.join(console)))
+
+
+        report = 'Genomes/ContigSets compared with DNAdiff:\n'
+        for pos, name in enumerate(genome_names):
+            report += '  {}: {}\n'.format(pos+1, name)
+
+        report += '\n\n============= MAF output =============\n\n'
+        maf_file = os.path.join(output_dir, 'out.maf')
+        with open(maf_file, 'r') as f:
+            for line in f:
+                line = line.replace('\n', '')
+                if len(line) > 80:
+                    report += line[:80]+"...\n"
+                else:
+                    report += line+"\n"
+
+        print(report)
+
+        aln_fasta = os.path.join(output_dir, 'aln.fasta')
+        cmdstr = 'maf2fasta.pl < {} | sed "s/=//g" > {}'.format(maf_file, aln_fasta)
+        logger.debug('CMD: {}'.format(cmdstr))
+        subprocess.check_call(cmdstr, shell=True)
+
+        # Warning: this reads everything into memory!  Will not work if
+        # the contigset is very large!
+        contigset_data = {
+            'id': 'DNAdiff.report',
+            'source': 'User assembled contigs from reads in KBase',
+            'source_id':'none',
+            'md5': 'md5 of what? concat seq? concat md5s?',
+            'contigs':[]
+        }
+
+        lengths = []
+        for seq_record in SeqIO.parse(aln_fasta, 'fasta'):
+            contig = {
+                'id': seq_record.id,
+                'name': seq_record.name,
+                'description': seq_record.description,
+                'length': len(seq_record.seq),
+                'sequence': str(seq_record.seq),
+                'md5': hashlib.md5(str(seq_record.seq)).hexdigest()
             }
-        
-        print('returning:'+str(returnVal))
-                
-        #END filter_contigs
+            lengths.append(contig['length'])
+            contigset_data['contigs'].append(contig)
+
+
+        # provenance
+        input_ws_objects = []
+        if "input_genomeset_ref" in params and params["input_genomeset_ref"] is not None:
+            input_ws_objects.append(params["input_genomeset_ref"])
+        if "input_genome_refs" in params and params["input_genome_refs"] is not None:
+            for genome_ref in params["input_genome_refs"]:
+                if genome_ref is not None:
+                    input_ws_objects.append(genome_ref)
+
+        provenance = None
+        if "provenance" in ctx:
+            provenance = ctx["provenance"]
+        else:
+            logger.info("Creating provenance data")
+            provenance = [{"service": "SeqComparison",
+                           "method": "run_dnadiff",
+                           "method_params": [params]}]
+
+        provenance[0]["input_ws_objects"] = input_ws_objects
+        provenance[0]["description"] = "Sequence comparison using DNAdiff"
+
+
+        # save the report object
+        aln_obj_info = ws.save_objects({
+            'id': wsid, # set the output workspace ID
+            'objects':[{'type': 'KBaseGenomes.ContigSet',
+                        'data': contigset_data,
+                        'name': params['output_alignment_name'],
+                        'meta': {},
+                        'provenance': provenance}]})
+
+
+        reportObj = {
+            'objects_created':[{'ref':params['workspace_name']+'/'+params['output_output_name'], 'description':'DNAdiff report'}],
+            'text_message': report
+        }
+
+        reportName = '{}.report.{}'.format('run_dnadiff', hex(uuid.getnode()))
+        report_obj_info = ws.save_objects({
+                # 'workspace': params["workspace_name"],
+            'id': wsid,
+            'objects': [
+                {
+                    'type': 'KBaseReport.Report',
+                    'data': reportObj,
+                    'name': reportName,
+                    'meta': {},
+                    'hidden': 1,
+                    'provenance': provenance
+                }
+            ]})[0]
+
+
+        # shutil.rmtree(output_dir)
+
+        output = {"report_name": reportName, 'report_ref': str(report_obj_info[6]) + '/' + str(report_obj_info[0]) + '/' + str(report_obj_info[4]) }
+
+        #END run_dnadiff
 
         # At some point might do deeper type checking...
-        if not isinstance(returnVal, dict):
-            raise ValueError('Method filter_contigs return value ' +
-                             'returnVal is not type dict as required.')
+        if not isinstance(output, dict):
+            raise ValueError('Method run_dnadiff return value ' +
+                             'output is not type dict as required.')
         # return the results
-        return [returnVal]
+        return [output]
