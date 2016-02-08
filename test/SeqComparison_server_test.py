@@ -67,12 +67,12 @@ class SeqComparisonTest(unittest.TestCase):
                 return json.load(testInfoFile)
 
     def test_run_mugsy(self):
+        logger.debug('path={}'.format(os.path.dirname(os.path.realpath(__file__))))
         params = self.getGenomeSetInfo()
         logger.info(json.dumps(params))
 
         if not params.get('output_report_name'):
             params['output_report_name'] = 'output.report'
-
 
         result = self.getImpl().run_dnadiff(self.getContext(),params)
         logger.info(result)
