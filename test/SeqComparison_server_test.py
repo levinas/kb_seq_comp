@@ -2,6 +2,7 @@ import unittest
 import os
 import json
 import time
+import logging
 
 from os import environ
 from ConfigParser import ConfigParser
@@ -9,9 +10,6 @@ from pprint import pprint
 
 from biokbase.workspace.client import Workspace as workspaceService
 from SeqComparison.SeqComparisonImpl import SeqComparison
-
-from biokbase.workspace.client import Workspace as workspaceService
-from WholeGenomeAlignment.WholeGenomeAlignmentImpl import WholeGenomeAlignment
 
 logging.basicConfig(format="[%(asctime)s %(levelname)s %(name)s] %(message)s",
                     level=logging.INFO)
@@ -70,10 +68,11 @@ class SeqComparisonTest(unittest.TestCase):
 
     def test_run_mugsy(self):
         params = self.getGenomeSetInfo()
+        logger.info(json.dumps(params))
+
         if not params.get('output_report_name'):
             params['output_report_name'] = 'output.report'
 
-        logger.info(json.dumps(params))
 
         result = self.getImpl().run_dnadiff(self.getContext(),params)
         logger.info(result)
