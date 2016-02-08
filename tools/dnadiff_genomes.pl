@@ -3,10 +3,10 @@
 use strict;
 use Carp;
 use Data::Dumper;
-use gjoseqlib;
-use gjocolorlib;
+# use gjoseqlib;
+# use gjocolorlib;
 use Getopt::Long;
-use DT;
+# use DT;
 
 my $usage = <<"End_of_Usage";
 
@@ -38,7 +38,7 @@ if ($list && -s $list) {
 
 my @sets;
 my $no = 0;
-for (@contig_files) { 
+for (@contig_files) {
     my ($name, $file, $abbr) = @$_;
     $abbr ||= ++$no;
     # print join("\t", $name, $file, $abbr) . "\n";
@@ -58,11 +58,11 @@ for my $i (0 .. $#sets) {
         my $prefix = "$outdir/$i-$j";
         my $report = "$prefix.report";
         run("dnadiff -p $prefix  $sets[$i]->[1] $sets[$j]->[1] >$prefix.log 2>&1") if ! $reuse || ! -s $report;
-        
+
         my $diff = dnadiff_report_to_diff($report);
         my $stat = dnadiff_report_to_key_stats($report);
         my $hover = dnadiff_report_to_mouseover($report);
-        
+
         # hue, saturation, brightness
         my $mindiff = 0.00009;
         $diff = $mindiff if $diff <= $mindiff;
@@ -70,16 +70,16 @@ for my $i (0 .. $#sets) {
         # my $hue = 1-(log(0.05+$diff) + 3)/3.05;
         # my $hue = 1-(log(0.1+$diff) + 2.31)/2.5;
         # my $hue = 1-(log(0.2+$diff) + 0.19)/1.8;
-        my $color = gjocolorlib::rgb2html( gjocolorlib::hsb2rgb( (1-$hue)*200/360+$diff/4,
+        # my $color = gjocolorlib::rgb2html( gjocolorlib::hsb2rgb( (1-$hue)*200/360+$diff/4,
                                                                  $hue/3+(1-$diff)/5+0.36,
                                                                  1 )
                                          );
         # $color = "#fffdd8" if $diff == 0;
         print STDERR "$diff $hue\n";
-        
-        my $cell = qq(<span style="background-color: $color;"> $stat </span>);
 
-        $stat = DT::span_mouseover($cell, DT::span_css("strains", "mouseover"), $hover);
+        # my $cell = qq(<span style="background-color: $color;"> $stat </span>);
+
+        # $stat = DT::span_mouseover($cell, DT::span_css("strains", "mouseover"), $hover);
 
         push @c, $stat;
     }
@@ -87,7 +87,7 @@ for my $i (0 .. $#sets) {
     push @rows, \@c;
 }
 
-DT::print_dynamic_table(\@hdrs, \@rows, { title => 'Strain Comparison' });
+# DT::print_dynamic_table(\@hdrs, \@rows, { title => 'Strain Comparison' });
 
 print STDERR "done\n";
 
@@ -95,7 +95,7 @@ sub dnadiff_report_to_diff {
     my ($report_file) = @_;
     my ($alignedBases) = `grep "^AlignedBases" $report_file` =~ /\(([0-9.]+)%\)/;
     my ($avgIdentity)  = [split(/\s+/, `grep "^AvgIdentity"  $report_file |head -n 1`)]->[1];
-    
+
     my $sim = sprintf("%.4f", $alignedBases/100 * $avgIdentity/100);
     return sprintf("%.4f", 1 - $sim);
 }
@@ -104,7 +104,7 @@ sub dnadiff_report_to_key_stats {
     my ($report_file) = @_;
     my ($alignedBases) = `grep "^AlignedBases" $report_file` =~ /\(([0-9.]+)%\)/;
     my ($avgIdentity)  = [split(/\s+/, `grep "^AvgIdentity"  $report_file |head -n 1`)]->[1];
-    
+
     my $sim = sprintf("%.4f", $alignedBases/100 * $avgIdentity/100);
 
     # $alignedBases = sprintf "%5g", $alignedBases;
@@ -126,7 +126,7 @@ sub dnadiff_report_to_mouseover {
     my @rows;
     push @rows, [ undef, $c1, $c2 ];
     for (@lines) {
-        chomp; 
+        chomp;
         my @cols = /^\[/ ? ("<b>".$_."<\/b>") : split/\s+/;
         push @rows, [$cols[0], $cols[1], $cols[2]];
     }
@@ -142,6 +142,3 @@ sub dnadiff_report_to_mouseover {
 
 
 sub run { system(@_) == 0 or confess("FAILED: ". join(" ", @_)); }
-
-
-

@@ -29,7 +29,7 @@ module SeqComparison {
         string report_ref;
     } DNAdiffOutput;
 
-    funcdef run_mugsy(DNAdiffParams params) returns (DNAdiffOutput output)
+    funcdef run_dnadiff(DNAdiffParams params) returns (DNAdiffOutput output)
         authentication required;
 
 };
