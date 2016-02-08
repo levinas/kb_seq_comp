@@ -20,7 +20,8 @@ RUN \
     cd /kb/deployment/mummer && make all && \
     echo 'export PATH=$PATH:/kb/deployment/mummer' >> /kb/deployment/user-env.sh
 
-COPY tools/dnadiff_genomes.pl /kb/deployment/ && \
+RUN \
+    cp tools/dnadiff_genomes.pl /kb/deployment && \
     mv /kb/deployment/dnadiff_genomes.pl /kb/deployment/dnadiff_genomes && \
     chmod a+x /kb/deployment/dnadiff_genomes
 
