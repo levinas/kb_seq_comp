@@ -159,7 +159,12 @@ This sample module contains one small method - filter_contigs.
         cmd = ['dnadiff_genomes', '-o', 'out', '-j', out_json]
         cmd += fasta_files
 
+        # FIXME
+        output = {"report_name": params['output_report_name'], 'report_ref': ''}
+        return [output]
+
         # logger.info("CMD: {}".format(' '.join(cmd)))
+
         p = subprocess.Popen(cmd,
                              cwd = self.scratch,
                              stdout = subprocess.PIPE,
@@ -244,6 +249,7 @@ This sample module contains one small method - filter_contigs.
 
         # output = {"report_name": reportName, 'report_ref': str(report_obj_info[6]) + '/' + str(report_obj_info[0]) + '/' + str(report_obj_info[4]) }
         # output = {"report_name": params['output_report_name'], 'report_ref': str(comp_obj_info[6]) + '/' + str(comp_obj_info[0]) + '/' + str(comp_obj_info[4]) }
+
         output = {"report_name": params['output_report_name'], 'report_ref': ''}
 
         #END run_dnadiff
