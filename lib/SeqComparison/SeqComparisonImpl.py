@@ -243,7 +243,7 @@ This sample module contains one small method - filter_contigs.
         # shutil.rmtree(output_dir)
 
         # output = {"report_name": reportName, 'report_ref': str(report_obj_info[6]) + '/' + str(report_obj_info[0]) + '/' + str(report_obj_info[4]) }
-        output = {}
+        output = {"report_name": params['output_report_name'], 'report_ref':str(comp_obj_info[6]) + '/' + str(comp_obj_info[0]) + '/' + str(comp_obj_info[4]) }
 
         #END run_dnadiff
 
