@@ -20,10 +20,6 @@ RUN \
     cd /kb/deployment/mummer && make all && \
     echo 'export PATH=$PATH:/kb/deployment/mummer' >> /kb/deployment/user-env.sh
 
-# RUN \
-#     cp ../tools/dnadiff_genomes.pl /kb/deployment && \
-#     mv /kb/deployment/dnadiff_genomes.pl /kb/deployment/dnadiff_genomes && \
-#     chmod a+x /kb/deployment/dnadiff_genomes
 
 # Copy local wrapper files, and build
 
@@ -31,6 +27,11 @@ COPY ./ /kb/module
 RUN mkdir -p /kb/module/work
 
 WORKDIR /kb/module
+
+RUN \
+    cp tools/dnadiff_genomes.pl /kb/deployment/bin && \
+    mv /kb/deployment/bin/dnadiff_genomes.pl /kb/deployment/bin/dnadiff_genomes && \
+    chmod a+x /kb/deployment/bin/dnadiff_genomes
 
 RUN make
 

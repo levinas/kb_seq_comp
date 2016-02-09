@@ -71,6 +71,9 @@ This sample module contains one small method - filter_contigs.
     def __init__(self, config):
         #BEGIN_CONSTRUCTOR
         self.workspaceURL = config['workspace-url']
+        self.scratch = os.path.abspath(config['scratch'])
+        if not os.path.exists(self.scratch):
+            os.makedirs(self.scratch)
         #END_CONSTRUCTOR
         pass
 
@@ -152,10 +155,11 @@ This sample module contains one small method - filter_contigs.
 
         logger.info("Run DNAdiff:")
 
-        cmd = ['mugsy', '-p', 'out', '--directory', output_dir ]
+        out_json = os.path.join(output_dir, 'out.json')
+        cmd = ['dnadiff_genomes', '-o', 'out', '-j', out_json]
         cmd += fasta_files
 
-        logger.info("CMD: {}".format(' '.join(cmd)))
+        # logger.info("CMD: {}".format(' '.join(cmd)))
         p = subprocess.Popen(cmd,
                              cwd = self.scratch,
                              stdout = subprocess.PIPE,
@@ -173,50 +177,14 @@ This sample module contains one small method - filter_contigs.
         if p.returncode != 0:
             raise ValueError('Error running dnadiff, return code: {}\n\n{}'.format(p.returncode, '\n'.join(console)))
 
-
-        report = 'Genomes/ContigSets compared with DNAdiff:\n'
+        logger.info('Genomes/ContigSets compared with DNAdiff:\n')
         for pos, name in enumerate(genome_names):
-            report += '  {}: {}\n'.format(pos+1, name)
+            logger.info('  {}: {}\n'.format(pos+1, name))
 
-        report += '\n\n============= MAF output =============\n\n'
-        maf_file = os.path.join(output_dir, 'out.maf')
-        with open(maf_file, 'r') as f:
-            for line in f:
-                line = line.replace('\n', '')
-                if len(line) > 80:
-                    report += line[:80]+"...\n"
-                else:
-                    report += line+"\n"
+        with open(out_json) as comp_file:
+            comparisons = json.load(comp_file)
 
-        print(report)
-
-        aln_fasta = os.path.join(output_dir, 'aln.fasta')
-        cmdstr = 'maf2fasta.pl < {} | sed "s/=//g" > {}'.format(maf_file, aln_fasta)
-        logger.debug('CMD: {}'.format(cmdstr))
-        subprocess.check_call(cmdstr, shell=True)
-
-        # Warning: this reads everything into memory!  Will not work if
-        # the contigset is very large!
-        contigset_data = {
-            'id': 'DNAdiff.report',
-            'source': 'User assembled contigs from reads in KBase',
-            'source_id':'none',
-            'md5': 'md5 of what? concat seq? concat md5s?',
-            'contigs':[]
-        }
-
-        lengths = []
-        for seq_record in SeqIO.parse(aln_fasta, 'fasta'):
-            contig = {
-                'id': seq_record.id,
-                'name': seq_record.name,
-                'description': seq_record.description,
-                'length': len(seq_record.seq),
-                'sequence': str(seq_record.seq),
-                'md5': hashlib.md5(str(seq_record.seq)).hexdigest()
-            }
-            lengths.append(contig['length'])
-            contigset_data['contigs'].append(contig)
+        comp_data = { 'genome_names': genome_names, 'genome_comparisons': comparisons }
 
 
         # provenance
@@ -242,39 +210,40 @@ This sample module contains one small method - filter_contigs.
 
 
         # save the report object
-        aln_obj_info = ws.save_objects({
+        comp_obj_info = ws.save_objects({
             'id': wsid, # set the output workspace ID
-            'objects':[{'type': 'KBaseGenomes.ContigSet',
-                        'data': contigset_data,
-                        'name': params['output_alignment_name'],
+            'objects':[{'type': 'ComparativeGenomics.SeqCompOutput',
+                        'data': comp_data,
+                        'name': params['output_report_name'],
                         'meta': {},
                         'provenance': provenance}]})
 
 
-        reportObj = {
-            'objects_created':[{'ref':params['workspace_name']+'/'+params['output_output_name'], 'description':'DNAdiff report'}],
-            'text_message': report
-        }
+        # reportObj = {
+        #     'objects_created':[{'ref':params['workspace_name']+'/'+params['output_report_name'], 'description':'DNAdiff report'}],
+        #     'text_message': report
+        # }
 
-        reportName = '{}.report.{}'.format('run_dnadiff', hex(uuid.getnode()))
-        report_obj_info = ws.save_objects({
-                # 'workspace': params["workspace_name"],
-            'id': wsid,
-            'objects': [
-                {
-                    'type': 'KBaseReport.Report',
-                    'data': reportObj,
-                    'name': reportName,
-                    'meta': {},
-                    'hidden': 1,
-                    'provenance': provenance
-                }
-            ]})[0]
+        # reportName = '{}.report.{}'.format('run_dnadiff', hex(uuid.getnode()))
+        # report_obj_info = ws.save_objects({
+        #         # 'workspace': params["workspace_name"],
+        #     'id': wsid,
+        #     'objects': [
+        #         {
+        #             'type': 'KBaseReport.Report',
+        #             'data': reportObj,
+        #             'name': reportName,
+        #             'meta': {},
+        #             'hidden': 1,
+        #             'provenance': provenance
+        #         }
+        #     ]})[0]
 
 
         # shutil.rmtree(output_dir)
 
-        output = {"report_name": reportName, 'report_ref': str(report_obj_info[6]) + '/' + str(report_obj_info[0]) + '/' + str(report_obj_info[4]) }
+        # output = {"report_name": reportName, 'report_ref': str(report_obj_info[6]) + '/' + str(report_obj_info[0]) + '/' + str(report_obj_info[4]) }
+        output = {}
 
         #END run_dnadiff
 

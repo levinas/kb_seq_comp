@@ -140,20 +140,19 @@ public class SeqComparisonClient {
     }
 
     /**
-     * <p>Original spec-file function name: filter_contigs</p>
+     * <p>Original spec-file function name: run_dnadiff</p>
      * <pre>
-     * Filter contigs in a ContigSet by DNA length
      * </pre>
-     * @param   params   instance of type {@link us.kbase.seqcomparison.FilterContigsParams FilterContigsParams}
-     * @return   instance of type {@link us.kbase.seqcomparison.FilterContigsResults FilterContigsResults}
+     * @param   params   instance of type {@link us.kbase.seqcomparison.DNAdiffParams DNAdiffParams}
+     * @return   parameter "output" of type {@link us.kbase.seqcomparison.DNAdiffOutput DNAdiffOutput}
      * @throws IOException if an IO exception occurs
      * @throws JsonClientException if a JSON RPC exception occurs
      */
-    public FilterContigsResults filterContigs(FilterContigsParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
+    public DNAdiffOutput runDnadiff(DNAdiffParams params, RpcContext... jsonRpcContext) throws IOException, JsonClientException {
         List<Object> args = new ArrayList<Object>();
         args.add(params);
-        TypeReference<List<FilterContigsResults>> retType = new TypeReference<List<FilterContigsResults>>() {};
-        List<FilterContigsResults> res = caller.jsonrpcCall("SeqComparison.filter_contigs", args, retType, true, true, jsonRpcContext);
+        TypeReference<List<DNAdiffOutput>> retType = new TypeReference<List<DNAdiffOutput>>() {};
+        List<DNAdiffOutput> res = caller.jsonrpcCall("SeqComparison.run_dnadiff", args, retType, true, true, jsonRpcContext);
         return res.get(0);
     }
 }

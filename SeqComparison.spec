@@ -22,14 +22,21 @@ module SeqComparison {
         string input_genomeset;
         list<string> input_genome_names;
         string output_report_name;
-    } DNAdiffParams;
+    } SeqCompParams;
 
     typedef structure {
-        string report_name;
-        string report_ref;
+        string query;
+        string reference;
+        string report;
+        float similarity;
     } DNAdiffOutput;
 
-    funcdef run_dnadiff(DNAdiffParams params) returns (DNAdiffOutput output)
+    typedef structure {
+        list<string> genome_names;
+        list<DNAdiffOutput> genome_comparisons;
+    } SeqCompOutput;
+
+    funcdef run_dnadiff(SeqCompParams params) returns (SeqCompOutput output)
         authentication required;
 
 };

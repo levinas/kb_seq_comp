@@ -60,9 +60,9 @@ class JSONObjectEncoder(json.JSONEncoder):
 sync_methods = {}
 async_run_methods = {}
 async_check_methods = {}
-async_run_methods['SeqComparison.filter_contigs_async'] = ['SeqComparison', 'filter_contigs']
-async_check_methods['SeqComparison.filter_contigs_check'] = ['SeqComparison', 'filter_contigs']
-sync_methods['SeqComparison.filter_contigs'] = True
+async_run_methods['SeqComparison.run_dnadiff_async'] = ['SeqComparison', 'run_dnadiff']
+async_check_methods['SeqComparison.run_dnadiff_check'] = ['SeqComparison', 'run_dnadiff']
+sync_methods['SeqComparison.run_dnadiff'] = True
 
 class AsyncJobServiceClient(object):
 
@@ -334,10 +334,10 @@ class Application(object):
         self.serverlog.set_log_level(6)
         self.rpc_service = JSONRPCServiceCustom()
         self.method_authentication = dict()
-        self.rpc_service.add(impl_SeqComparison.filter_contigs,
-                             name='SeqComparison.filter_contigs',
+        self.rpc_service.add(impl_SeqComparison.run_dnadiff,
+                             name='SeqComparison.run_dnadiff',
                              types=[dict])
-        self.method_authentication['SeqComparison.filter_contigs'] = 'required'
+        self.method_authentication['SeqComparison.run_dnadiff'] = 'required'
         self.auth_client = biokbase.nexus.Client(
             config={'server': 'nexus.api.globusonline.org',
                     'verify_ssl': True,
