@@ -107,8 +107,8 @@ This sample module contains one small method - filter_contigs.
                     genome_refs.append(genome_ref)
 
         logger.info("Final list of genome references: {}".format(genome_refs))
-        if len(genome_refs) < 2:
-            raise ValueError("Number of genomes should be more than 1")
+        # if len(genome_refs) < 2:
+        #     raise ValueError("Number of genomes should be more than 1")
         if len(genome_refs) > 10:
             raise ValueError("Number of genomes exceeds 10, which is too many for dnadiff")
 
