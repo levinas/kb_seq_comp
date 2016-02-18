@@ -42,7 +42,7 @@
 	    "default_values" : [ "dnadiff.report" ],
 	    "field_type" : "text",
 	    "text_options" : {
-		"valid_ws_types" : [ "KBaseAssembly.AssemblyReport" ],
+		"valid_ws_types" : [ "ComparativeGenomics.SeqCompOutput" ],
 		"is_output_name":true
 	    }
         }
