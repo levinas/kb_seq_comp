@@ -160,8 +160,8 @@ This sample module contains one small method - filter_contigs.
         cmd += fasta_files
 
         # FIXME
-        output = {"report_name": params['output_report_name'], 'report_ref': ''}
-        return [output]
+        # output = {"report_name": params['output_report_name'], 'report_ref': ''}
+        # return [output]
 
         # logger.info("CMD: {}".format(' '.join(cmd)))
 
