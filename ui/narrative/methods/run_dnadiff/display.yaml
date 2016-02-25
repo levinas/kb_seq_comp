@@ -1,9 +1,9 @@
 #
 # define display information
 #
-name: Sequence Comparison with DNAdiff
+name: Compare Sequences with dnadiff
 tooltip: |
-        Perform DNA sequence comparison on multiple genomes with MUMmer's DNAdiff
+        Perform DNA sequence comparison on multiple genomes with MUMmer's dnadiff
 screenshots: []
 
 icon: icon.png
@@ -45,11 +45,12 @@ parameters :
 
     output_report_name:
         ui-name : Output Report
-        short-hint : Enter a name for the output DNAdiff report object
+        short-hint : Enter a name for the output dnadiff report object
 
 
 description : |
-	<p>This is a KBase wrapper for MUMmer's DNAdiff.</p>
+	<p>This is a KBase wrapper for MUMmer's dnadiff.</p>
+	<p>This method compares the DNA sequences of multiple Genomes or ContigSets and generate an all-to-all comparison matrix. The overall similarity between each pair of query and reference genome is presented in the matrix cell as the product of dnadiff's AlignedBases and AvgIdentity in the reference column. 100% sequence matches are denoted by white table cells, while darker red is used to indicate greater sequence distance. A detailed dnadiff report for the comparison of each sequence pair can be accessed in the mouseover window for the corresponding matrix cell.</p>
 
 publications :
     -
