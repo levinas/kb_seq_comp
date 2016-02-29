@@ -6,7 +6,7 @@ tooltip: |
         Perform DNA sequence comparison on multiple genomes with MUMmer's dnadiff
 screenshots: []
 
-icon: icon.png
+icon: mummer-cyan.png
 
 #
 # define a set of similar methods that might be useful to the user
