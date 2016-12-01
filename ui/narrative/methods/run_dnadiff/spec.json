@@ -3,9 +3,9 @@
     "authors": [
         "fangfang"
     ],
-    "contact": "help@kbase.us",
+    "contact": "kbase.us/contact-us",
     "visible": true,
-    "categories": ["active","sequence","assembly"],
+    "categories": ["active","sequence", "comparative_genomics"],
     "widgets": {
         "input": null,
 	"output": "kbaseSeqCompView"
